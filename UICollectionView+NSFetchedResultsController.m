@@ -7,7 +7,7 @@
 //
 
 #import "UICollectionView+NSFetchedResultsController.h"
-#import <objc/objc-runtime.h>
+#import <objc/runtime.h>
 
 
 @interface UICollectionView (ChangesInternal)
@@ -24,12 +24,10 @@
   NSMutableDictionary *change = [NSMutableDictionary new];
   
   switch(type) {
-    case NSFetchedResultsChangeInsert:
-      change[@(type)] = @[@(sectionIndex)];
-      break;
-    case NSFetchedResultsChangeDelete:
-      change[@(type)] = @[@(sectionIndex)];
-      break;
+      case NSFetchedResultsChangeInsert:
+      case NSFetchedResultsChangeDelete:
+          change[@(type)] = @(sectionIndex);
+          break;
   }
   
   [self.sectionChanges addObject:change];
@@ -82,7 +80,9 @@
           }
         }];
       }
-    } completion:nil];
+    } completion:^(BOOL finished) {
+        NSLog(@"finished updating sections!");
+    }];
   }
   
   if ([self.objectChanges count] > 0 && [self.sectionChanges count] == 0)
@@ -111,7 +111,9 @@
           }
         }];
       }
-    } completion:nil];
+    } completion:^(BOOL finished) {
+        NSLog(@"finished updating objects!");
+    }];
   }
   
   [self.sectionChanges removeAllObjects];
