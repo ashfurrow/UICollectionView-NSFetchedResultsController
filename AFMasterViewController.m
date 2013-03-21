@@ -213,10 +213,10 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
                 }
             } completion:nil];
         }
-        
-        [_sectionChanges removeAllObjects];
-        [_objectChanges removeAllObjects];
     }
+
+    [_sectionChanges removeAllObjects];
+    [_objectChanges removeAllObjects];
 }
 
 - (BOOL)shouldReloadCollectionViewToPreventKnownIssue {
