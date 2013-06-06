@@ -177,7 +177,7 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
     if ([_objectChanges count] > 0 && [_sectionChanges count] == 0)
     {
         
-        if ([self shouldReloadCollectionViewToPreventKnownIssue]) {
+        if ([self shouldReloadCollectionViewToPreventKnownIssue] || self.collectionView.window == nil) {
             // This is to prevent a bug in UICollectionView from occurring.
             // The bug presents itself when inserting the first object or deleting the last object in a collection view.
             // http://stackoverflow.com/questions/12611292/uicollectionview-assertion-failure
