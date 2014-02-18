@@ -4,10 +4,30 @@ This is an example of how to use the new `UICollectionView` with `NSFetchedResul
 
 # Setup
 
-Clone the repo and look in the `UICollectionViewControllre` subclass. The logic inside the `.m` file shows how to queue updates.
+Just include the header and write your NSFetchedResultsControllerDelegate methods like this:
 
-Section updates are stored in `_sectionChanges` while udates to objects within sections are stored in `_objectChanges`. When `controllerDidChangeContent:` is called, these updates are dequeued. 
+``` objective-c
+- (void)controller:(NSFetchedResultsController *)controller didChangeSection:(id <NSFetchedResultsSectionInfo>)sectionInfo
+           atIndex:(NSUInteger)sectionIndex forChangeType:(NSFetchedResultsChangeType)type
+{
+    
+	[self.collectionView addChangeForSection:sectionInfo atIndex:sectionIndex forChangeType:type];
+}
+
+- (void)controller:(NSFetchedResultsController *)controller didChangeObject:(id)anObject
+       atIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)type
+      newIndexPath:(NSIndexPath *)newIndexPath
+{
+	
+	[self.collectionView addChangeForObjectAtIndexPath:indexPath forChangeType:type newIndexPath:newIndexPath];
+}
+
+- (void)controllerDidChangeContent:(NSFetchedResultsController *)controller {
+	
+	[self.collectionView commitChanges];
+}
+```
 
 # Credit
 
-Most of the logic for this is taken from [this gist](https://gist.github.com/4440c1cba83318e276bb).
+This is built on idea by [Ash Furrow](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController) with category idea taken from [Derrick Hathaway](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/pull/2). Then came Blake Watters with [idea to use  NSOperation](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/issues/13) and finally I added some stuff I encountered along the way.
