@@ -4,7 +4,7 @@ This is an example of how to use the new `UICollectionView` with `NSFetchedResul
 
 # Setup
 
-Clone the repo and look in the `UICollectionViewControllre` subclass. The logic inside the `.m` file shows how to queue updates.
+Clone the repo and look in the `UICollectionViewController` subclass. The logic inside the `.m` file shows how to queue updates.
 
 Section updates are stored in `_sectionChanges` while udates to objects within sections are stored in `_objectChanges`. When `controllerDidChangeContent:` is called, these updates are dequeued. 
 
