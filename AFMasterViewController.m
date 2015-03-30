@@ -26,7 +26,6 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
-    
 }
 
 - (void)didReceiveMemoryWarning
@@ -171,10 +170,10 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
             } else if ([insertSections containsIndex:toIP.section]) {
                 NSMutableArray *changeSet = _objectChanges[@(NSFetchedResultsChangeDelete)];
                 if (changeSet == nil) {
-                    changeSet = [[NSMutableArray alloc] initWithObjects:toIP, nil];
+                    changeSet = [[NSMutableArray alloc] initWithObjects:fromIP, nil];
                     _objectChanges[@(NSFetchedResultsChangeDelete)] = changeSet;
                 } else {
-                    [changeSet addObject:toIP];
+                    [changeSet addObject:fromIP];
                 }
             } else {
                 [updatedMoves addObject:move];
