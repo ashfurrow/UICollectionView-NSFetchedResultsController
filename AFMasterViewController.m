@@ -148,7 +148,7 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
 - (void)controllerDidChangeContent:(NSFetchedResultsController *)controller
 {
     NSMutableArray *moves = _objectChanges[@(NSFetchedResultsChangeMove)];
-    if (moves.count) {
+    if (moves.count > 0) {
         NSMutableArray *updatedMoves = [[NSMutableArray alloc] initWithCapacity:moves.count];
         
         NSMutableIndexSet *insertSections = _sectionChanges[@(NSFetchedResultsChangeInsert)];
@@ -180,7 +180,7 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
             }
         }
         
-        if (updatedMoves.count) {
+        if (updatedMoves.count > 0) {
             _objectChanges[@(NSFetchedResultsChangeMove)] = updatedMoves;
         } else {
             [_objectChanges removeObjectForKey:@(NSFetchedResultsChangeMove)];
@@ -188,7 +188,7 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
     }
     
     NSMutableArray *deletes = _objectChanges[@(NSFetchedResultsChangeDelete)];
-    if (deletes.count) {
+    if (deletes.count > 0) {
         NSMutableIndexSet *deletedSections = _sectionChanges[@(NSFetchedResultsChangeDelete)];
         [deletes filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSIndexPath *evaluatedObject, NSDictionary *bindings) {
             return ![deletedSections containsIndex:evaluatedObject.section];
@@ -196,7 +196,7 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
     }
     
     NSMutableArray *inserts = _objectChanges[@(NSFetchedResultsChangeInsert)];
-    if (inserts.count) {
+    if (inserts.count > 0) {
         NSMutableIndexSet *insertedSections = _sectionChanges[@(NSFetchedResultsChangeInsert)];
         [inserts filterUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSIndexPath *evaluatedObject, NSDictionary *bindings) {
             return ![insertedSections containsIndex:evaluatedObject.section];
@@ -207,27 +207,27 @@ static NSString *CellIdentifier = @"AFCollectionViewCell";
     
     [collectionView performBatchUpdates:^{
         NSIndexSet *deletedSections = _sectionChanges[@(NSFetchedResultsChangeDelete)];
-        if (deletedSections.count) {
+        if (deletedSections.count > 0) {
             [collectionView deleteSections:deletedSections];
         }
         
         NSIndexSet *insertedSections = _sectionChanges[@(NSFetchedResultsChangeInsert)];
-        if (insertedSections.count) {
+        if (insertedSections.count > 0) {
             [collectionView insertSections:insertedSections];
         }
         
         NSArray *deletedItems = _objectChanges[@(NSFetchedResultsChangeDelete)];
-        if (deletedItems.count) {
+        if (deletedItems.count > 0) {
             [collectionView deleteItemsAtIndexPaths:deletedItems];
         }
         
         NSArray *insertedItems = _objectChanges[@(NSFetchedResultsChangeInsert)];
-        if (insertedItems.count) {
+        if (insertedItems.count > 0) {
             [collectionView insertItemsAtIndexPaths:insertedItems];
         }
         
         NSArray *reloadItems = _objectChanges[@(NSFetchedResultsChangeUpdate)];
-        if (reloadItems.count) {
+        if (reloadItems.count > 0) {
             [collectionView reloadItemsAtIndexPaths:reloadItems];
         }
         
