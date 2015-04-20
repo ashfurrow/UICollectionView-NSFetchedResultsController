@@ -8,7 +8,6 @@
 
 #import "UICollectionView+NSFetchedResultsController.h"
 #import <objc/runtime.h>
-#import <CoreData/CoreData.h>
 
 
 
