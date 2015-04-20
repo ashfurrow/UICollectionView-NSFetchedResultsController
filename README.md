@@ -2,9 +2,18 @@
 
 This is an example of how to use the new `UICollectionView` with `NSFetchedResultsController`. The trick is to queue the updates made through the `NSFetchedResultsControllerDelegate` until the controller *finishes* its updates. `UICollectionView` doesn't have the same `beginUpdates` and `endUpdates` that `UITableView` has to let it work easily with `NSFetchedResultsController`, so you have to queue them or you get internal consistency runtime exceptions.
 
-# Setup
+## Setup
 
-Just include the header and write your NSFetchedResultsControllerDelegate methods like this:
+* [CocoaPods]  
+  Add `pod 'UICollectionView+NSFetchedResultsController'` to your podfile.
+* Manual  
+  Copy `UICollectionView+NSFetchedResultsController.h/m` to your project.
+
+
+
+## Usage
+
+Just include the header and write your `NSFetchedResultsControllerDelegate` methods like this:
 
 ``` objective-c
 - (void)controller:(NSFetchedResultsController *)controller didChangeSection:(id <NSFetchedResultsSectionInfo>)sectionInfo
@@ -28,6 +37,6 @@ Just include the header and write your NSFetchedResultsControllerDelegate method
 }
 ```
 
-# Credit
+## Credit
 
 This is built on idea by [Ash Furrow](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController) with category idea taken from [Derrick Hathaway](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/pull/2). Then came Blake Watters with [idea to use  NSOperation](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/issues/13) and finally I added some stuff I encountered along the way.
