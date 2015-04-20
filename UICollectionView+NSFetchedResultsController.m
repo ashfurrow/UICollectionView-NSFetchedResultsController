@@ -1,6 +1,6 @@
 //
 //	UICollectionView+NSFetchedResultsController.m
-//	Radiant Tap
+//	Radiant Tap Essentials
 //
 //  Created by Aleksandar Vacić on 26.9.13.
 //  Copyright (c) 2013. Radiant Tap. All rights reserved.
@@ -10,11 +10,34 @@
 #import <objc/runtime.h>
 
 
+
+@interface RTBlockOperation : NSBlockOperation
+
+@end
+
+@implementation RTBlockOperation
+
+- (BOOL)isAsynchronous {
+	
+	return NO;
+}
+
+- (void)start {
+	for (void (^executionBlock)(void) in [self executionBlocks]) {
+		executionBlock();
+	}
+}
+
+@end
+
+
+
 @implementation UICollectionView (NSFetchedResultsController)
 
 - (void)addChangeForSection:(id <NSFetchedResultsSectionInfo>)sectionInfo atIndex:(NSUInteger)sectionIndex forChangeType:(NSFetchedResultsChangeType)type {
 	
 	if (self.collectionViewBlockOperation.isExecuting) {
+		[self.collectionViewBlockOperation cancel];
 		self.shouldReloadCollectionView = YES;
 		return;
 	}
@@ -53,6 +76,7 @@
 - (void)addChangeForObjectAtIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)type newIndexPath:(NSIndexPath *)newIndexPath {
 	
 	if (self.collectionViewBlockOperation.isExecuting) {
+		[self.collectionViewBlockOperation cancel];
 		self.shouldReloadCollectionView = YES;
 		return;
 	}
@@ -88,8 +112,8 @@
             }
             break;
         }
-            
-        case NSFetchedResultsChangeUpdate: {
+
+		case NSFetchedResultsChangeUpdate: {
             [self.collectionViewBlockOperation addExecutionBlock:^{
                 [collectionView reloadItemsAtIndexPaths:@[indexPath]];
             }];
@@ -143,22 +167,12 @@
 		self.shouldReloadCollectionView = NO;
 		
 	} else {	//	BIG
-
-		@try
-		{
-			[self performBatchUpdates:^{
-				[self.collectionViewBlockOperation start];
-			} completion:^(BOOL finished) {
-				self.collectionViewBlockOperation = nil;
-			}];
-		}
-		@catch (NSException *except)
-		{
-			NSLog(@"DEBUG: failure to batch update.  %@", except.description);
+		
+		[self performBatchUpdates:^{
+			[self.collectionViewBlockOperation start];
+		} completion:^(BOOL finished) {
 			self.collectionViewBlockOperation = nil;
-			self.shouldReloadCollectionView = NO;
-			[self reloadData];
-		}
+		}];
 		
 	}	//BIG else
 }
@@ -173,16 +187,16 @@
 
 static const void *kCollectionViewBlockOperationKey;
 
-- (NSBlockOperation *)collectionViewBlockOperation {
-	NSBlockOperation *collectionViewBlockOperation = objc_getAssociatedObject(self, &kCollectionViewBlockOperationKey);
+- (RTBlockOperation *)collectionViewBlockOperation {
+	RTBlockOperation *collectionViewBlockOperation = objc_getAssociatedObject(self, &kCollectionViewBlockOperationKey);
 	if (collectionViewBlockOperation == nil) {
-		collectionViewBlockOperation = [NSBlockOperation new];
+		collectionViewBlockOperation = [RTBlockOperation new];
 		objc_setAssociatedObject(self, &kCollectionViewBlockOperationKey, collectionViewBlockOperation, OBJC_ASSOCIATION_RETAIN);
 	}
 	return collectionViewBlockOperation;
 }
 
-- (void)setCollectionViewBlockOperation:(NSBlockOperation *)collectionViewBlockOperation {
+- (void)setCollectionViewBlockOperation:(RTBlockOperation *)collectionViewBlockOperation {
 	
 	objc_setAssociatedObject(self, &kCollectionViewBlockOperationKey, collectionViewBlockOperation, OBJC_ASSOCIATION_RETAIN);
 }

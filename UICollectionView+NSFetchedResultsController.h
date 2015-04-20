@@ -1,6 +1,6 @@
 //
 //	UICollectionView+NSFetchedResultsController.h
-//	DHCollectibles
+//	Radiant Tap Essentials
 //
 //  Created by Aleksandar Vacić on 26.9.13.
 //  Copyright (c) 2013. Radiant Tap. All rights reserved.
