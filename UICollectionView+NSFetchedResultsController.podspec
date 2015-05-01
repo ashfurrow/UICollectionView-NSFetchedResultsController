@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'UICollectionView+NSFetchedResultsController'
-  s.version      = '1.1'
+  s.version      = '1.2'
   s.summary      = 'NSFRC category for UICV that collects the data source changes and executes them in proper order using batchUpdates.'
   s.homepage     = 'https://github.com/radianttap/UICollectionView-NSFetchedResultsController'
   s.license      = 'MIT'
