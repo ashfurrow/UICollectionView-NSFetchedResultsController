@@ -22,13 +22,25 @@
 		case NSFetchedResultsChangeDelete: {
 			[self.deletedSectionIndexes addIndex:sectionIndex];
 			
+			//	since we are deleting entire section,
+			//	remove items scheduled to be deleted/updated from this same section
 			NSMutableArray *indexPathsInSection = [NSMutableArray array];
+			//
 			for (NSIndexPath *indexPath in self.deletedItemIndexPaths) {
 				if (indexPath.section == sectionIndex) {
 					[indexPathsInSection addObject:indexPath];
 				}
 			}
 			[self.deletedItemIndexPaths removeObjectsInArray:indexPathsInSection];
+			//
+			[indexPathsInSection removeAllObjects];
+			for (NSIndexPath *indexPath in self.updatedItemIndexPaths) {
+				if (indexPath.section == sectionIndex) {
+					[indexPathsInSection addObject:indexPath];
+				}
+			}
+			[self.updatedItemIndexPaths removeObjectsInArray:indexPathsInSection];
+
 			break;
 		}
 			
@@ -62,6 +74,10 @@
 		}
 		
 	} else if (type == NSFetchedResultsChangeUpdate) {
+		if ([self.deletedSectionIndexes containsIndex:indexPath.section] || [self.deletedItemIndexPaths containsObject:indexPath]) {
+			// If we've already been told that we're deleting a section for this deleted row we skip it since it will handled by the section deletion.
+			return;
+		}
 		if ([self.updatedItemIndexPaths containsObject:indexPath] == NO)
 			[self.updatedItemIndexPaths addObject:indexPath];
 	}

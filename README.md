@@ -37,6 +37,3 @@ Just include the header and write your `NSFetchedResultsControllerDelegate` meth
 }
 ```
 
-## Credit
-
-This is built on idea by [Ash Furrow](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController) with category idea taken from [Derrick Hathaway](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/pull/2). Then came Blake Watters with [idea to use  NSOperation](https://github.com/AshFurrow/UICollectionView-NSFetchedResultsController/issues/13) and finally I added some stuff I encountered along the way.
