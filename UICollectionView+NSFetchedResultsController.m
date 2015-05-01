@@ -62,7 +62,8 @@
 		}
 		
 	} else if (type == NSFetchedResultsChangeUpdate) {
-		[self.updatedItemIndexPaths addObject:indexPath];
+		if ([self.updatedItemIndexPaths containsObject:indexPath] == NO)
+			[self.updatedItemIndexPaths addObject:indexPath];
 	}
 }
 
