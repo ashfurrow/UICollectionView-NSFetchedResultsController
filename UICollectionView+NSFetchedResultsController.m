@@ -9,127 +9,61 @@
 #import "UICollectionView+NSFetchedResultsController.h"
 #import <objc/runtime.h>
 
-
-
-@interface RTBlockOperation : NSBlockOperation
-
-@end
-
-@implementation RTBlockOperation
-
-- (BOOL)isAsynchronous {
-	
-	return NO;
-}
-
-- (void)start {
-	for (void (^executionBlock)(void) in [self executionBlocks]) {
-		executionBlock();
-	}
-}
-
-@end
-
-
-
 @implementation UICollectionView (NSFetchedResultsController)
 
 - (void)addChangeForSection:(id <NSFetchedResultsSectionInfo>)sectionInfo atIndex:(NSUInteger)sectionIndex forChangeType:(NSFetchedResultsChangeType)type {
 	
-	if (self.collectionViewBlockOperation.isExecuting) {
-		[self.collectionViewBlockOperation cancel];
-		self.shouldReloadCollectionView = YES;
-		return;
-	}
-	
-	if (self.collectionViewBlockOperation.isFinished)
-		self.collectionViewBlockOperation = nil;
-	
-    __weak UICollectionView *collectionView = self;
 	switch(type) {
-        case NSFetchedResultsChangeInsert: {
-            [self.collectionViewBlockOperation addExecutionBlock:^{
-                [collectionView insertSections:[NSIndexSet indexSetWithIndex:sectionIndex]];
-            }];
-            break;
-        }
-            
-        case NSFetchedResultsChangeDelete: {
-            [self.collectionViewBlockOperation addExecutionBlock:^{
-                [collectionView deleteSections:[NSIndexSet indexSetWithIndex:sectionIndex]];
-            }];
-            break;
-        }
-            
-        case NSFetchedResultsChangeUpdate: {
-            [self.collectionViewBlockOperation addExecutionBlock:^{
-                [collectionView reloadSections:[NSIndexSet indexSetWithIndex:sectionIndex]];
-            }];
-            break;
-        }
-            
-        default:
-            break;
-    }
+		case NSFetchedResultsChangeInsert: {
+			[self.insertedSectionIndexes addIndex:sectionIndex];
+			break;
+		}
+			
+		case NSFetchedResultsChangeDelete: {
+			[self.deletedSectionIndexes addIndex:sectionIndex];
+			
+			NSMutableArray *indexPathsInSection = [NSMutableArray array];
+			for (NSIndexPath *indexPath in self.deletedItemIndexPaths) {
+				if (indexPath.section == sectionIndex) {
+					[indexPathsInSection addObject:indexPath];
+				}
+			}
+			[self.deletedItemIndexPaths removeObjectsInArray:indexPathsInSection];
+			break;
+		}
+			
+		default:
+			break;
+	}
 }
 
 - (void)addChangeForObjectAtIndexPath:(NSIndexPath *)indexPath forChangeType:(NSFetchedResultsChangeType)type newIndexPath:(NSIndexPath *)newIndexPath {
 	
-	if (self.collectionViewBlockOperation.isExecuting) {
-		[self.collectionViewBlockOperation cancel];
-		self.shouldReloadCollectionView = YES;
-		return;
+	if (type == NSFetchedResultsChangeInsert) {
+		if ([self.insertedSectionIndexes containsIndex:newIndexPath.section]) {
+			// If we've already been told that we're adding a section for this inserted row we skip it since it will handled by the section insertion.
+			return;
+		}
+		[self.insertedItemIndexPaths addObject:newIndexPath];
+		
+	} else if (type == NSFetchedResultsChangeDelete) {
+		if ([self.deletedSectionIndexes containsIndex:indexPath.section]) {
+			// If we've already been told that we're deleting a section for this deleted row we skip it since it will handled by the section deletion.
+			return;
+		}
+		[self.deletedItemIndexPaths addObject:indexPath];
+		
+	} else if (type == NSFetchedResultsChangeMove) {
+		if ([self.insertedSectionIndexes containsIndex:newIndexPath.section] == NO) {
+			[self.insertedItemIndexPaths addObject:newIndexPath];
+		}
+		if ([self.deletedSectionIndexes containsIndex:indexPath.section] == NO) {
+			[self.deletedItemIndexPaths addObject:indexPath];
+		}
+		
+	} else if (type == NSFetchedResultsChangeUpdate) {
+		[self.updatedItemIndexPaths addObject:indexPath];
 	}
-	
-	if (self.collectionViewBlockOperation.isFinished)
-		self.collectionViewBlockOperation = nil;
-
-    __weak UICollectionView *collectionView = self;
-
-    switch (type) {
-        case NSFetchedResultsChangeInsert: {
-            if ([self numberOfSections] > 0) {
-                if ([self numberOfItemsInSection:newIndexPath.section] == 0) {
-                    self.shouldReloadCollectionView = YES;
-                } else {
-                    [self.collectionViewBlockOperation addExecutionBlock:^{
-                        [collectionView insertItemsAtIndexPaths:@[newIndexPath]];
-                    }];
-                }
-            } else {
-                self.shouldReloadCollectionView = YES;
-            }
-            break;
-        }
-            
-        case NSFetchedResultsChangeDelete: {
-            if ([self numberOfItemsInSection:indexPath.section] == indexPath.item+1) {
-                self.shouldReloadCollectionView = YES;
-            } else {
-                [self.collectionViewBlockOperation addExecutionBlock:^{
-                    [collectionView deleteItemsAtIndexPaths:@[indexPath]];
-                }];
-            }
-            break;
-        }
-
-		case NSFetchedResultsChangeUpdate: {
-            [self.collectionViewBlockOperation addExecutionBlock:^{
-                [collectionView reloadItemsAtIndexPaths:@[indexPath]];
-            }];
-            break;
-        }
-            
-        case NSFetchedResultsChangeMove: {
-            [self.collectionViewBlockOperation addExecutionBlock:^{
-                [collectionView moveItemAtIndexPath:indexPath toIndexPath:newIndexPath];
-            }];
-            break;
-        }
-            
-        default:
-            break;
-    }
 }
 
 /*
@@ -138,7 +72,7 @@
  NSFetchedResultsChangeDelete = 2,
  NSFetchedResultsChangeMove = 3,
  NSFetchedResultsChangeUpdate = 4
-
+ 
  */
 
 - (void)commitChanges {
@@ -146,75 +80,131 @@
 	if (!self) return;
 	
 	if (self.window == nil) {
-		//	if collection view is not currently visible, then just reload data.
-		//	this prevents all sorts of crazy UICV crashes
-		self.collectionViewBlockOperation = nil;
-		self.shouldReloadCollectionView = NO;
+		[self clearChanges];
 		[self reloadData];
-	
-	} else if (self.shouldReloadCollectionView) {
-		// This is to prevent a bug in UICollectionView from occurring.
-		// The bug presents itself when inserting the first object or deleting the last object in a collection view.
-		// http://stackoverflow.com/questions/12611292/uicollectionview-assertion-failure
-		// This code should be removed once the bug has been fixed, it is tracked in OpenRadar
-		// http://openradar.appspot.com/12954582
-		self.collectionViewBlockOperation = nil;
-		self.shouldReloadCollectionView = NO;
-		[self reloadData];
-		
-	} else if ([self.collectionViewBlockOperation.executionBlocks count] == 0) {
-		self.collectionViewBlockOperation = nil;
-		self.shouldReloadCollectionView = NO;
 		
 	} else {	//	BIG
 		
+		NSInteger totalChanges = [self.deletedSectionIndexes count] +
+		[self.insertedSectionIndexes count] +
+		[self.deletedItemIndexPaths count] +
+		[self.insertedItemIndexPaths count] +
+		[self.updatedItemIndexPaths count];
+		
+		if (totalChanges > 50) {
+			[self clearChanges];
+			[self reloadData];
+			return;
+		}
+		
 		[self performBatchUpdates:^{
-			[self.collectionViewBlockOperation start];
+			[self deleteSections:self.deletedSectionIndexes];
+			[self insertSections:self.insertedSectionIndexes];
+			
+			[self deleteItemsAtIndexPaths:self.deletedItemIndexPaths];
+			[self insertItemsAtIndexPaths:self.insertedItemIndexPaths];
+			[self reloadItemsAtIndexPaths:self.updatedItemIndexPaths];
+			
 		} completion:^(BOOL finished) {
-			self.collectionViewBlockOperation = nil;
+			[self clearChanges];
 		}];
 		
 	}	//BIG else
 }
 
 - (void)clearChanges {
-
-	self.collectionViewBlockOperation = nil;
-	self.shouldReloadCollectionView = NO;
-}
-
-#pragma mark - block keeper
-
-static const void *kCollectionViewBlockOperationKey;
-
-- (RTBlockOperation *)collectionViewBlockOperation {
-	RTBlockOperation *collectionViewBlockOperation = objc_getAssociatedObject(self, &kCollectionViewBlockOperationKey);
-	if (collectionViewBlockOperation == nil) {
-		collectionViewBlockOperation = [RTBlockOperation new];
-		objc_setAssociatedObject(self, &kCollectionViewBlockOperationKey, collectionViewBlockOperation, OBJC_ASSOCIATION_RETAIN);
-	}
-	return collectionViewBlockOperation;
-}
-
-- (void)setCollectionViewBlockOperation:(RTBlockOperation *)collectionViewBlockOperation {
 	
-	objc_setAssociatedObject(self, &kCollectionViewBlockOperationKey, collectionViewBlockOperation, OBJC_ASSOCIATION_RETAIN);
+	self.insertedSectionIndexes = nil;
+	self.deletedSectionIndexes = nil;
+	self.deletedItemIndexPaths = nil;
+	self.insertedItemIndexPaths = nil;
+	self.updatedItemIndexPaths = nil;
 }
 
-static const void *kCollectionViewShouldReloadKey;
+#pragma mark - Overridden getters
 
-- (BOOL)shouldReloadCollectionView {
-	NSNumber *shouldReloadNumber = objc_getAssociatedObject(self, &kCollectionViewShouldReloadKey);
-	if (shouldReloadNumber == nil) {
-		objc_setAssociatedObject(self, &kCollectionViewShouldReloadKey, @(NO), OBJC_ASSOCIATION_RETAIN);
-	}
-	return [shouldReloadNumber boolValue];
-}
+/**
+ * Lazily instantiate these collections.
+ */
 
-- (void)setShouldReloadCollectionView:(BOOL)shouldReloadCollectionView {
+- (NSMutableIndexSet *)deletedSectionIndexes {
 	
-	objc_setAssociatedObject(self, &kCollectionViewShouldReloadKey, @(shouldReloadCollectionView), OBJC_ASSOCIATION_RETAIN);
+	NSMutableIndexSet *_deletedSectionIndexes = objc_getAssociatedObject(self, @selector(deletedSectionIndexes));
+	if (_deletedSectionIndexes == nil) {
+		_deletedSectionIndexes = [[NSMutableIndexSet alloc] init];
+		objc_setAssociatedObject(self, @selector(deletedSectionIndexes), _deletedSectionIndexes, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+	}
+ 
+	return _deletedSectionIndexes;
 }
 
+- (void)setDeletedSectionIndexes:(NSMutableIndexSet *)deletedSectionIndexes {
+	
+	objc_setAssociatedObject(self, @selector(deletedSectionIndexes), deletedSectionIndexes, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableIndexSet *)insertedSectionIndexes {
+	
+	NSMutableIndexSet *_insertedSectionIndexes = objc_getAssociatedObject(self, @selector(insertedSectionIndexes));
+	if (_insertedSectionIndexes == nil) {
+		_insertedSectionIndexes = [[NSMutableIndexSet alloc] init];
+		objc_setAssociatedObject(self, @selector(insertedSectionIndexes), _insertedSectionIndexes, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+	}
+	
+	return _insertedSectionIndexes;
+}
+
+- (void)setInsertedSectionIndexes:(NSMutableIndexSet *)insertedSectionIndexes {
+	
+	objc_setAssociatedObject(self, @selector(insertedSectionIndexes), insertedSectionIndexes, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableArray *)deletedItemIndexPaths {
+ 
+	NSMutableArray *_deletedItemIndexPaths = objc_getAssociatedObject(self, @selector(deletedItemIndexPaths));
+	if (_deletedItemIndexPaths == nil) {
+		_deletedItemIndexPaths = [[NSMutableArray alloc] init];
+		objc_setAssociatedObject(self, @selector(deletedItemIndexPaths), _deletedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+	}
+	
+	return _deletedItemIndexPaths;
+}
+
+- (void)setDeletedItemIndexPaths:(NSMutableArray *)deletedItemIndexPaths {
+	
+	objc_setAssociatedObject(self, @selector(deletedItemIndexPaths), deletedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableArray *)insertedItemIndexPaths {
+	
+	NSMutableArray *_insertedItemIndexPaths = objc_getAssociatedObject(self, @selector(insertedItemIndexPaths));
+	if (_insertedItemIndexPaths == nil) {
+		_insertedItemIndexPaths = [[NSMutableArray alloc] init];
+		objc_setAssociatedObject(self, @selector(insertedItemIndexPaths), _insertedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+	}
+	
+	return _insertedItemIndexPaths;
+}
+
+- (void)setInsertedItemIndexPaths:(NSMutableArray *)insertedItemIndexPaths {
+	
+	objc_setAssociatedObject(self, @selector(insertedItemIndexPaths), insertedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableArray *)updatedItemIndexPaths {
+	
+	NSMutableArray *_updatedItemIndexPaths = objc_getAssociatedObject(self, @selector(updatedItemIndexPaths));
+	if (_updatedItemIndexPaths == nil) {
+		_updatedItemIndexPaths = [[NSMutableArray alloc] init];
+		objc_setAssociatedObject(self, @selector(updatedItemIndexPaths), _updatedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+	}
+	
+	return _updatedItemIndexPaths;
+}
+
+- (void)setUpdatedItemIndexPaths:(NSMutableArray *)updatedItemIndexPaths {
+	
+	objc_setAssociatedObject(self, @selector(updatedItemIndexPaths), updatedItemIndexPaths, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 @end
