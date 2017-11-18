@@ -1,3 +1,7 @@
+---
+> Note: this is abandoned. I don't recommend to use it in new projects.
+---
+
 # `UICollectionView+NSFetchedResultsController`
 
 This is an example of how to use the new `UICollectionView` with `NSFetchedResultsController`. The trick is to queue the updates made through the `NSFetchedResultsControllerDelegate` until the controller *finishes* its updates. `UICollectionView` doesn't have the same `beginUpdates` and `endUpdates` that `UITableView` has to let it work easily with `NSFetchedResultsController`, so you have to queue them or you get internal consistency runtime exceptions.
